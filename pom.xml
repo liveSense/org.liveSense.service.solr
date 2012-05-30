@@ -9,7 +9,7 @@
 	<artifactId>org.liveSense.service.solr</artifactId>
 	<packaging>bundle</packaging>
 	<version>1.3.S-1.0.0-SNAPSHOT</version>
-	<name>liveSense Solr based search service.</name>
+	<name>liveSense :: Service :: Solr based search service.</name>
 	<description>A Solr bundle that embeds Solr 4 into OSGi and makes an embeded server available or references a remote server. (Derived from Sakai Nakumara - https://github.com/ieb/solr)</description>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
