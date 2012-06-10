@@ -48,15 +48,17 @@
 					<instructions>
 						<Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
 						<Export-Package>
-							org.liveSense.service.solr.*,
-							org.apache.solr.common,
-							org.apache.solr.common.params,
-							org.apache.solr.common.util,
-							org.apache.solr.client.solrj,
-							org.apache.solr.client.solrj.response,
-							org.apache.solr.client.solrj.util,
-							org.apache.solr.schema
+							org.liveSense.service.solr.*;version=${project.version}
 						</Export-Package>
+                        <_exportcontents>
+							org.apache.solr.common;version=${solr.version},
+							org.apache.solr.common.params;version=${solr.version},
+							org.apache.solr.common.util;version=${solr.version},
+							org.apache.solr.client.solrj;version=${solr.version},
+							org.apache.solr.client.solrj.response;version=${solr.version},
+							org.apache.solr.client.solrj.util;version=${solr.version},
+							org.apache.solr.schema;version=${solr.version}
+                        </_exportcontents>
 						<Import-Package>
 							com.werken.*;resolution:=optional,
 							org.apache.log.*;resolution:=optional,
@@ -72,12 +74,7 @@
 							javax.servlet.jsp.*;resolution:=optional,
 							*
              			</Import-Package>
-						<Private-Package>
-							org.liveSense.service.solr.*,
-							org.apache.solr.core;-split-package:=merge-first,
-							org.apache.lucene.*;-split-package:=merge-first
-            			</Private-Package>
-						<Embed-Transitive>true</Embed-Transitive>
+ 						<Embed-Transitive>true</Embed-Transitive>
 						<Embed-Dependency>
 							solr-core,
 							solr-solrj,
