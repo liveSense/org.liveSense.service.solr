@@ -1,8 +1,8 @@
 package org.liveSense.service.solr.impl;
 
-import org.apache.solr.core.SolrResourceLoader;
-
 import java.io.InputStream;
+
+import org.apache.solr.core.SolrResourceLoader;
 
 public class LiveSenseResourceLoader extends SolrResourceLoader {
 
@@ -21,7 +21,11 @@ public class LiveSenseResourceLoader extends SolrResourceLoader {
   public InputStream openResource(String resource) {
     InputStream in = this.getClass().getClassLoader().getResourceAsStream(resource);
     if ( in == null ) {
-      in = super.openResource(resource);
+ //     try {
+		in = super.openResource(resource);
+//	} catch (IOException e) {
+//		log.error("openResource",e);
+//	}
     }
     return in;
   }
