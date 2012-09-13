@@ -2,13 +2,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
-	      <groupId>org.liveSense</groupId>
+	      <groupId>com.github.livesense</groupId>
 	      <artifactId>org.liveSense.parent</artifactId>
 	      <version>1-SNAPSHOT</version>
 	</parent>
 	<artifactId>org.liveSense.service.solr</artifactId>
 	<packaging>bundle</packaging>
-	<version>${solr.version}_1-SNAPSHOT</version>
+	<version>${liveSense.service.solr.version}</version>
 	<name>liveSense :: Service :: Solr based search service.</name>
 	<description>A Solr bundle that embeds Solr 4 into OSGi and makes an embeded server available or references a remote server. (Derived from Sakai Nakumara - https://github.com/ieb/solr)</description>
 	<properties>
@@ -110,7 +110,7 @@
 	</build>
 	<dependencies>
 		<dependency>
-			<groupId>org.liveSense</groupId>
+			<groupId>com.github.livesense</groupId>
 			<artifactId>org.liveSense.core</artifactId>
 		</dependency>
 		<dependency>
@@ -137,10 +137,15 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- json library used by solr when faceting -->
 		<dependency>
 			<groupId>org.apache.solr</groupId>
-			<artifactId>solr-noggit</artifactId>
+			<artifactId>solr-analysis-extras</artifactId>
+			<version>${solr.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.solr</groupId>
+			<artifactId>solr-dataimporthandler</artifactId>
 			<version>${solr.version}</version>
 		</dependency>
 		<dependency>
