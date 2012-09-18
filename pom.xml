@@ -70,6 +70,7 @@
 							org.apache.lucene.sandbox.queries.*;resolution:=optional,
 							com.vividsolutions.jts.*;resolution:=optional,
 							org.slf4j.impl.*;resolution:=optional,
+							org.apache.commons.cli.*;resolution:=optional,
 							*
 							</Import-Package>
 						<Embed-Transitive>true</Embed-Transitive>
@@ -81,11 +82,16 @@
 							lucene-core,
 							lucene-analyzers-common,
 							lucene-analyzers-phonetic,
+							lucene-analyzers-stempel,
+							lucene-analyzers-icu,
 							lucene-highlighter,
 							lucene-memory,
 							lucene-misc,
 							lucene-queries,
+							lucene-queryparser,
 							lucene-spatial,
+							lucene-suggest,
+							lucene-grouping,
 							zookeeper,
 							opencsv
 						</Embed-Dependency>

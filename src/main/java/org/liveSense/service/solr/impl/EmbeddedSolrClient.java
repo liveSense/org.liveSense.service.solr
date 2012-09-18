@@ -27,14 +27,12 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.CoreDescriptor;
 import org.apache.solr.core.LiveSenseSolrConfig;
 import org.apache.solr.core.SolrConfig;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.core.SolrResourceLoader;
-import org.apache.solr.handler.CSVRequestHandler;
 import org.apache.solr.schema.IndexSchema;
 import org.liveSense.core.BundleProxyClassLoader;
 import org.liveSense.service.solr.api.SolrClient;
@@ -43,8 +41,6 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.cm.Configuration;
-import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.packageadmin.PackageAdmin;
 import org.slf4j.Logger;
@@ -62,30 +58,29 @@ import au.com.bytecode.opencsv.CSVReader;
 	createPid=true)
 @Properties(value = {
 		@Property(
-				name=EmbeddedSolrClient.PROP_SOLR_SERVER_NAME, 				
+				name=EmbeddedSolrClient.PROP_SOLR_SERVER_NAME,
 				value=EmbeddedSolrClient.DEFAULT_SOLR_SERVER_NAME,
 				description="%solrServerName"),
 		@Property(
-				name=EmbeddedSolrClient.PROP_SOLR_CONFIG_FILENAME, 				
+				name=EmbeddedSolrClient.PROP_SOLR_CONFIG_FILENAME,
 				value=EmbeddedSolrClient.DEFAULT_SOLR_CONFIG_FILENAME,
 				description="%solrConfigLocation"),
 		@Property(
-				name=EmbeddedSolrClient.PROP_SOLR_SCHEMA_FIlNAME, 				
+				name=EmbeddedSolrClient.PROP_SOLR_SCHEMA_FIlNAME,
 				value=EmbeddedSolrClient.DEFAULT_SOLR_SCHEMA_FILENAME,
 				description="%solrSchemaLocation"),
 		@Property(
-				name=EmbeddedSolrClient.PROP_SOLR_IMPORT_ROOT, 				
+				name=EmbeddedSolrClient.PROP_SOLR_IMPORT_ROOT,
 				value=EmbeddedSolrClient.DEFAULT_SOLR_IMPORT_ROOT,
 				description="%solrImportFiles"),
 		@Property(
-				name=EmbeddedSolrClient.PROP_SOLR_IMPORT_FILES, 				
+				name=EmbeddedSolrClient.PROP_SOLR_IMPORT_FILES,
 				value=EmbeddedSolrClient.DEFAULT_SOLR_IMPORT_FILES,
 				description="%solrImportFiles"),
 		@Property(
-				name=EmbeddedSolrClient.PROP_SOLR_IMPORT_ON_STARTUP, 				
+				name=EmbeddedSolrClient.PROP_SOLR_IMPORT_ON_STARTUP,
 				boolValue=EmbeddedSolrClient.DEFAULT_SOLR_IMPORT_ON_STARTUP,
 				description="%solrImportOnStartup")
-
 })
 @Service(value=SolrClient.class, serviceFactory=true)
 public class EmbeddedSolrClient implements SolrClient {
@@ -97,12 +92,12 @@ public class EmbeddedSolrClient implements SolrClient {
 
 	private SolrServer server = null;
 	private CoreContainer coreContainer = null;
-    private	LiveSenseResourceLoader loader = null;
+	private	SolrResourceLoader loader = null;
 	private SolrCore solrCore = null;
 	private String instanceName = null;
 	private SolrClientListener listener = null;
 	private String solrBundle = null;
-	
+
 	public static final String PROP_SOLR_SERVER_NAME = "solrServerName";
 	public static final String DEFAULT_SOLR_SERVER_NAME = "default";
 
@@ -117,40 +112,55 @@ public class EmbeddedSolrClient implements SolrClient {
 
 	public static final String PROP_SOLR_IMPORT_ROOT = "solrImportRoot";
 	public static final String DEFAULT_SOLR_IMPORT_ROOT = "";
-	
+
 	public static final String PROP_SOLR_BUNDLE = "solrConfigBundle";
 	public static final String DEFAULT_SOLR_BUNDLE = "";
 
 	public static final String PROP_SOLR_IMPORT_ON_STARTUP = "solrImportInStartup";
 	public static final boolean DEFAULT_SOLR_IMPORT_ON_STARTUP = true;
 
-	
+
 	@Reference
 	PackageAdmin packageAdmin;
-	
+
 	private boolean enabled;
 
 	private Dictionary<String, Object> properties;
 
 	@SuppressWarnings("unchecked")
-	
+
 	@Activate
 	public void activate(ComponentContext componentContext) throws IOException,
-			ParserConfigurationException, SAXException {
+	ParserConfigurationException, SAXException {
 		BundleContext bundleContext = componentContext.getBundleContext();
-
-		log.info("ACTIVATE SOLR CORE: "+componentContext.getProperties().get(PROP_SOLR_SERVER_NAME));
 		solrHome = Utils.getSolrHome(bundleContext);
 
+		log.info("ACTIVATE SOLR CORE: "+componentContext.getProperties().get(PROP_SOLR_SERVER_NAME)+" Home: "+solrHome);
+
+		JarClassLoader jarcl = new JarClassLoader(this.getClass().getClassLoader());
+/*		// Searching for JAR entries in this bundle
+		if (bundleContext != null && bundleContext.getBundle() != null) {
+			Enumeration<?> entries = bundleContext.getBundle().getEntryPaths("/");
+	
+			if (entries != null) {
+				while (entries.hasMoreElements()) {
+					String confPath = (String)entries.nextElement();
+					if (confPath.toLowerCase().endsWith(".jar")) {
+						log.info("Adding "+confPath+" to Solr classloader");
+					}
+				}
+			}
+		}
+*/
 		// Loader
 		ServiceReference ref = getSolrServiceReference(SolrResourceLoader.class, bundleContext);
 		if (ref == null) {
-			loader = new LiveSenseResourceLoader(solrHome, this.getClass().getClassLoader());
+			loader = new LiveSenseResourceLoader(solrHome, jarcl);
 			registerSolrServiceReference(SolrResourceLoader.class, bundleContext, loader);
 		} else {
 			loader = (LiveSenseResourceLoader)bundleContext.getService(ref);
 		}
-		
+
 		// CoreContainer
 		ref = getSolrServiceReference(CoreContainer.class, bundleContext);
 		if (ref == null) {
@@ -160,7 +170,7 @@ public class EmbeddedSolrClient implements SolrClient {
 			coreContainer = (CoreContainer)bundleContext.getService(ref);
 		}
 		properties = componentContext.getProperties();
-		
+
 		enable(null);
 	}
 
@@ -171,9 +181,9 @@ public class EmbeddedSolrClient implements SolrClient {
 		else
 			return path;
 	}
-	
+
 	public void enable(SolrClientListener listener) throws IOException,
-			ParserConfigurationException, SAXException {
+	ParserConfigurationException, SAXException {
 		if (enabled) {
 			return;
 		}
@@ -195,7 +205,7 @@ public class EmbeddedSolrClient implements SolrClient {
 		if (!importRoot.endsWith("/")) importRoot += "/";
 		File solrHomeFile = new File(solrHome);
 		//deployFile(solrHomeFile, "solr.xml");
-		
+
 		ClosableInputSource schemaSource = null;
 		ClosableInputSource configSource = null;
 		try {
@@ -221,7 +231,7 @@ public class EmbeddedSolrClient implements SolrClient {
 
 			if (isConfig) {
 				File coreDir = new File(solrHomeFile, instanceName);
-	
+
 				ArrayList<InputStream> importCsvStreams = new ArrayList<InputStream>(); 
 				// Copying files to the core's directory
 				if (StringUtils.isNotEmpty(importRoot)) {
@@ -242,14 +252,14 @@ public class EmbeddedSolrClient implements SolrClient {
 						}
 					}
 				}
-	
-				
+
+
 				// Setting this bundle's classloader
 				Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
-				
+
 				log.info("Configuring with Config {} schema {} ",configFilename, schemaFilename);
-				
-				LiveSenseResourceLoader confloader = new LiveSenseResourceLoader(instanceName, Thread.currentThread().getContextClassLoader());
+
+				SolrResourceLoader confloader = new LiveSenseResourceLoader(instanceName, Thread.currentThread().getContextClassLoader());
 				SolrConfig config = new LiveSenseSolrConfig(confloader, configFilename, configSource);
 				IndexSchema schema = new IndexSchema(config, schemaFilename, schemaSource);
 				CoreDescriptor coreDescriptor = new CoreDescriptor(coreContainer, instanceName, coreDir.getAbsolutePath());
@@ -257,11 +267,11 @@ public class EmbeddedSolrClient implements SolrClient {
 				coreContainer.register(instanceName, solrCore, false);
 				server = new EmbeddedSolrServer(coreContainer, instanceName);
 				LoggerFactory.getLogger(this.getClass()).info("Contains cores {} ", coreContainer.getCoreNames());
-				
+
 				// Importing CSV documents
 				String[] header = null;
 				for (InputStream stream : importCsvStreams) {
-					
+
 					CSVReader csvReader = new CSVReader(new InputStreamReader(stream, "UTF-8"));
 					for (String[] entries : csvReader.readAll()) {
 						if (header == null) {
@@ -277,8 +287,8 @@ public class EmbeddedSolrClient implements SolrClient {
 				}
 				server.commit();
 				server.optimize();
-				
-	
+
+
 				this.enabled = true;
 			}
 			this.listener = listener;
@@ -296,7 +306,7 @@ public class EmbeddedSolrClient implements SolrClient {
 	public void deactivate(ComponentContext componentContext) {
 		log.info("DEACTIVATE SOLR CORE: "+componentContext.getProperties().get(PROP_SOLR_SERVER_NAME));
 		disable();
-		
+
 		// If there is no more cores we shutdown the corecontainer and removes cores
 		if (coreContainer.getCores().size() == 0) {
 			ServiceReference ref = getSolrServiceReference(CoreContainer.class, componentContext.getBundleContext());
@@ -370,7 +380,7 @@ public class EmbeddedSolrClient implements SolrClient {
 		return bundleContext.registerService(clazz.getName(), service, loggingProperties);
 	}
 
-	
+
 	private ClosableInputSource getSource(String name) throws IOException {
 		if (name.contains(":")) {
 			// try a URL
@@ -394,7 +404,7 @@ public class EmbeddedSolrClient implements SolrClient {
 			InputStream in = null;
 			try {
 				in = this.getClass().getClassLoader()
-					.getResourceAsStream(name);
+						.getResourceAsStream(name);
 			} catch (Exception e) {
 			}
 			if (in == null) {
@@ -447,14 +457,12 @@ public class EmbeddedSolrClient implements SolrClient {
 	private ClassLoader getClassLoaderByBundle(String name) throws ClassNotFoundException {
 		return new BundleProxyClassLoader(getBundleByName(name));
 	}
-	
+
 	private Bundle getBundleByName(String name) {
-		 Bundle[] ret = packageAdmin.getBundles(name, null);
-		 if (ret != null && ret.length > 0) {
-			 return ret[0];
-		 }
-		 return null;
+		Bundle[] ret = packageAdmin.getBundles(name, null);
+		if (ret != null && ret.length > 0) {
+			return ret[0];
+		}
+		return null;
 	}
-
-
 }
