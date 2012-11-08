@@ -29,12 +29,15 @@ import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.CoreDescriptor;
-import org.apache.solr.core.LiveSenseSolrConfig;
 import org.apache.solr.core.SolrConfig;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.core.SolrResourceLoader;
 import org.apache.solr.schema.IndexSchema;
 import org.liveSense.core.BundleProxyClassLoader;
+import org.liveSense.core.ClosableInputSource;
+import org.liveSense.core.service.OSGIClassLoaderManager;
+import org.liveSense.service.solr.api.EmbeddedOSGiClientResourceLoader;
+import org.liveSense.service.solr.api.EmbeddedOSGiClientSolrConfig;
 import org.liveSense.service.solr.api.SolrClient;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -80,7 +83,28 @@ import au.com.bytecode.opencsv.CSVReader;
 		@Property(
 				name=EmbeddedSolrClient.PROP_SOLR_IMPORT_ON_STARTUP,
 				boolValue=EmbeddedSolrClient.DEFAULT_SOLR_IMPORT_ON_STARTUP,
-				description="%solrImportOnStartup")
+				description="%solrImportOnStartup"),
+		@Property(
+				name=EmbeddedSolrClient.PROP_SOLR_IMPORT_FROM_BUNDLE,
+				value= {
+						"lucene-analyzers-common", 
+						"lucene-analyzers-icu", 
+						"lucene-analyzers-phonetic", 
+						"lucene-analyzers-stempel", 
+						"lucene-core", 
+						"lucene-grouping", 
+						"lucene-highlighter", 
+						"lucene-memory", 
+						"lucene-misc", 
+						"lucene-queries", 
+						"lucene-queryparser", 
+						"lucene-spatial", 
+						"lucene-suggest",
+						"org.liveSense.framework.solr"
+						},
+				description="%solrImportFromBundle"
+
+				)
 })
 @Service(value=SolrClient.class, serviceFactory=true)
 public class EmbeddedSolrClient implements SolrClient {
@@ -92,11 +116,11 @@ public class EmbeddedSolrClient implements SolrClient {
 
 	private SolrServer server = null;
 	private CoreContainer coreContainer = null;
-	private	SolrResourceLoader loader = null;
+	private	EmbeddedOSGiClientResourceLoader loader = null;
 	private SolrCore solrCore = null;
 	private String instanceName = null;
 	private SolrClientListener listener = null;
-	private String solrBundle = null;
+	private final String solrBundle = null;
 
 	public static final String PROP_SOLR_SERVER_NAME = "solrServerName";
 	public static final String DEFAULT_SOLR_SERVER_NAME = "default";
@@ -119,51 +143,111 @@ public class EmbeddedSolrClient implements SolrClient {
 	public static final String PROP_SOLR_IMPORT_ON_STARTUP = "solrImportInStartup";
 	public static final boolean DEFAULT_SOLR_IMPORT_ON_STARTUP = true;
 
+	public static final String PROP_SOLR_IMPORT_FROM_BUNDLE = "solrImportFromBundle";
+	public static final String[] DEFAULT_SOLR_IMPORT_FROM_BUNDLE = new String[]{
+		"lucene-analyzers-common", 
+		"lucene-analyzers-icu", 
+		"lucene-analyzers-phonetic", 
+		"lucene-analyzers-stempel", 
+		"lucene-core", 
+		"lucene-grouping", 
+		"lucene-highlighter", 
+		"lucene-memory", 
+		"lucene-misc", 
+		"lucene-queries", 
+		"lucene-queryparser", 
+		"lucene-spatial", 
+		"lucene-suggest",
+		"org.liveSense.framework.solr"
+		};
 
 	@Reference
 	PackageAdmin packageAdmin;
 
+	@Reference
+	OSGIClassLoaderManager dynamicClassLoaderManager;
+	
 	private boolean enabled;
 
 	private Dictionary<String, Object> properties;
+	
+	private String[] importBundles = DEFAULT_SOLR_IMPORT_FROM_BUNDLE;
 
 	@SuppressWarnings("unchecked")
+
+	ClassLoader bundleClassLoader = this.getClass().getClassLoader();
+	
+	private ClassLoader getOSGiCompositeClassLoader(BundleContext bundleContext) {
+//		CompositeClassLoader ccl = new CompositeClassLoader(this.getClass().getClassLoader().getParent());
+
+		// Adding all lucene package to classloader
+//		if (bundleContext != null && bundleContext.getBundles() != null) {
+//			for (Bundle bundle : bundleContext.getBundles()) {
+//				if (bundle.getHeaders() != null && bundle.getHeaders().get("Bundle-Category") != null && bundle.getHeaders().get("Bundle-Category").equals("Lucene")) {
+//					log.info("Adding classloader for: "+bundle.getSymbolicName()+" - "+bundle.getBundleId());
+//					ccl.add(new BundleProxyClassLoader(bundle));
+//				} 
+				//else if (bundle.getSymbolicName().equals("org.liveSense.framework.solr")) {
+				//	log.info("Adding classloader for: "+bundle.getSymbolicName()+" - "+bundle.getBundleId());
+				//	ccl.add(new BundleProxyClassLoader(bundle));					
+				//}
+//			}
+//		}// else {
+		//	JarClassLoader jarcl = new JarClassLoader(this.getClass().getClassLoader());
+		//	ccl.add(jarcl);
+		//}
+
+//		if (dynamicClassLoaderManager != null) ccl.add(dynamicClassLoaderManager.getBundleClassLoaderByCategory(bundleContext, "Lucene"));
+//		ccl.add(this.getClass().getClassLoader());
+//		return ccl;
+//		return dynamicClassLoaderManager.getBundleClassLoaderByCategory(bundleContext, "Lucene");
+		if (dynamicClassLoaderManager == null) return this.getClass().getClassLoader(); else
+		return dynamicClassLoaderManager.getBundleClassLoader(bundleContext, importBundles);
+	}
+	
 
 	@Activate
 	public void activate(ComponentContext componentContext) throws IOException,
 	ParserConfigurationException, SAXException {
 		BundleContext bundleContext = componentContext.getBundleContext();
+		
 		solrHome = Utils.getSolrHome(bundleContext);
 
 		log.info("ACTIVATE SOLR CORE: "+componentContext.getProperties().get(PROP_SOLR_SERVER_NAME)+" Home: "+solrHome);
 
-		JarClassLoader jarcl = new JarClassLoader(this.getClass().getClassLoader());
-/*		// Searching for JAR entries in this bundle
-		if (bundleContext != null && bundleContext.getBundle() != null) {
-			Enumeration<?> entries = bundleContext.getBundle().getEntryPaths("/");
-	
-			if (entries != null) {
-				while (entries.hasMoreElements()) {
-					String confPath = (String)entries.nextElement();
-					if (confPath.toLowerCase().endsWith(".jar")) {
-						log.info("Adding "+confPath+" to Solr classloader");
-					}
-				}
-			}
-		}
-*/
-		// Loader
-		ServiceReference ref = getSolrServiceReference(SolrResourceLoader.class, bundleContext);
-		if (ref == null) {
-			loader = new LiveSenseResourceLoader(solrHome, jarcl);
-			registerSolrServiceReference(SolrResourceLoader.class, bundleContext, loader);
-		} else {
-			loader = (LiveSenseResourceLoader)bundleContext.getService(ref);
-		}
+		importBundles = Utils.toStringArray(componentContext.getProperties().get(PROP_SOLR_IMPORT_FROM_BUNDLE), DEFAULT_SOLR_IMPORT_FROM_BUNDLE);
 
-		// CoreContainer
-		ref = getSolrServiceReference(CoreContainer.class, bundleContext);
+		bundleClassLoader = getOSGiCompositeClassLoader(bundleContext);
+
+		//setServiceContextClassLoader();
+		
+		
+		/*
+		ServiceReference ref = getSolrServiceReference(EmbeddedOSGiClientResourceLoader.class, bundleContext);
 		if (ref == null) {
+			// ClassLoader have to null to use the thread's context classloader
+			//loader = new LiveSenseResourceLoader(solrHome, null);
+			ClassLoader oldContextClassLoader = Thread.currentThread().getContextClassLoader();
+			
+			Thread.currentThread().setContextClassLoader(bundleClassLoader);
+			loader = new EmbeddedOSGiClientResourceLoader(solrHome, bundleClassLoader);
+			Thread.currentThread().setContextClassLoader(oldContextClassLoader);
+			registerSolrServiceReference(EmbeddedOSGiClientResourceLoader.class, bundleContext, loader);
+		} else {
+			loader = (EmbeddedOSGiClientResourceLoader)bundleContext.getService(ref);
+		}
+		*/
+		// CoreContainer
+		ServiceReference ref = getSolrServiceReference(CoreContainer.class, bundleContext);
+		if (ref == null) {
+			// ClassLoader have to null to use the thread's context classloader
+			//loader = new LiveSenseResourceLoader(solrHome, null);
+			ClassLoader oldContextClassLoader = Thread.currentThread().getContextClassLoader();
+			
+			Thread.currentThread().setContextClassLoader(bundleClassLoader);
+			loader = new EmbeddedOSGiClientResourceLoader(solrHome, bundleClassLoader);
+			Thread.currentThread().setContextClassLoader(oldContextClassLoader);
+
 			coreContainer = new CoreContainer(loader);
 			registerSolrServiceReference(CoreContainer.class, bundleContext, coreContainer);
 		} else {
@@ -172,6 +256,7 @@ public class EmbeddedSolrClient implements SolrClient {
 		properties = componentContext.getProperties();
 
 		enable(null);
+
 	}
 
 	private String makePathRelative(String path) {
@@ -190,7 +275,7 @@ public class EmbeddedSolrClient implements SolrClient {
 
 		String solrBundle = Utils.toString(properties.get(PROP_SOLR_BUNDLE), DEFAULT_SOLR_BUNDLE);
 		// Backup classloader
-		ClassLoader contextClassloader = Thread.currentThread().getContextClassLoader();
+		//ClassLoader contextClassloader = Thread.currentThread().getContextClassLoader();
 
 		String bundleRoot;
 
@@ -201,7 +286,7 @@ public class EmbeddedSolrClient implements SolrClient {
 		String importFiles = Utils.toString(properties.get(PROP_SOLR_IMPORT_FILES), DEFAULT_SOLR_IMPORT_FILES);
 		String importRoot = Utils.toString(properties.get(PROP_SOLR_IMPORT_ROOT), DEFAULT_SOLR_IMPORT_ROOT);
 		Boolean importOnStartup = Utils.toBoolean(properties.get(PROP_SOLR_IMPORT_ON_STARTUP), DEFAULT_SOLR_IMPORT_ON_STARTUP);
-
+	
 		if (!importRoot.endsWith("/")) importRoot += "/";
 		File solrHomeFile = new File(solrHome);
 		//deployFile(solrHomeFile, "solr.xml");
@@ -210,16 +295,16 @@ public class EmbeddedSolrClient implements SolrClient {
 		ClosableInputSource configSource = null;
 		try {
 
-			// set the host bundle's classloader
-			if (StringUtils.isNotEmpty(solrBundle)) {
-				try {
-					Thread.currentThread().setContextClassLoader(getClassLoaderByBundle(solrBundle));
-				} catch (Throwable e) {
-					log.error("Could not bundle classloader: "+solrBundle, e);
-				}
-			} else {
-				Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
-			}
+//			// set the host bundle's classloader
+//			if (StringUtils.isNotEmpty(solrBundle)) {
+//				try {
+//					Thread.currentThread().setContextClassLoader(getClassLoaderByBundle(solrBundle));
+//				} catch (Throwable e) {
+//					log.error("Could not bundle classloader: "+solrBundle, e);
+//				}
+//			} else {
+//				Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
+//			}
 
 			boolean isConfig = true;
 			try {
@@ -229,6 +314,7 @@ public class EmbeddedSolrClient implements SolrClient {
 				isConfig = false;
 			}
 
+			
 			if (isConfig) {
 				File coreDir = new File(solrHomeFile, instanceName);
 
@@ -253,21 +339,19 @@ public class EmbeddedSolrClient implements SolrClient {
 					}
 				}
 
-
-				// Setting this bundle's classloader
-				Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
-
 				log.info("Configuring with Config {} schema {} ",configFilename, schemaFilename);
 
-				SolrResourceLoader confloader = new LiveSenseResourceLoader(instanceName, Thread.currentThread().getContextClassLoader());
-				SolrConfig config = new LiveSenseSolrConfig(confloader, configFilename, configSource);
+				SolrResourceLoader confloader = new EmbeddedOSGiClientResourceLoader(instanceName, bundleClassLoader);
+				SolrConfig config = new EmbeddedOSGiClientSolrConfig(confloader, configFilename, configSource);
 				IndexSchema schema = new IndexSchema(config, schemaFilename, schemaSource);
 				CoreDescriptor coreDescriptor = new CoreDescriptor(coreContainer, instanceName, coreDir.getAbsolutePath());
+				
 				solrCore = new SolrCore(instanceName, coreDir.getAbsolutePath()+"/data", config, schema, coreDescriptor);
 				coreContainer.register(instanceName, solrCore, false);
 				server = new EmbeddedSolrServer(coreContainer, instanceName);
 				LoggerFactory.getLogger(this.getClass()).info("Contains cores {} ", coreContainer.getCoreNames());
 
+				/*  TODO - More flexible way */
 				// Importing CSV documents
 				String[] header = null;
 				for (InputStream stream : importCsvStreams) {
@@ -288,15 +372,15 @@ public class EmbeddedSolrClient implements SolrClient {
 				server.commit();
 				server.optimize();
 
-
 				this.enabled = true;
 			}
 			this.listener = listener;
 		} catch (Throwable e) {
 			log.error("Error on solrCreate",e);
+			
 		} finally {
 			// Restore classloader
-			Thread.currentThread().setContextClassLoader(contextClassloader);
+//			Thread.currentThread().setContextClassLoader(contextClassloader);
 			safeClose(schemaSource);
 			safeClose(configSource);
 		}
@@ -309,20 +393,27 @@ public class EmbeddedSolrClient implements SolrClient {
 
 		// If there is no more cores we shutdown the corecontainer and removes cores
 		if (coreContainer.getCores().size() == 0) {
+			coreContainer.shutdown();
+
 			ServiceReference ref = getSolrServiceReference(CoreContainer.class, componentContext.getBundleContext());
+			if  (ref != null)
+				log.info("Unregistering CoreContainer: "+((CoreContainer)componentContext.getBundleContext().getService(ref)).getSolrHome());
 			try {
 				componentContext.getBundleContext().ungetService(ref);
 			} catch (Throwable e) {
 				log.error("Cannot unregister CoreContainer", e);
 			}
+/*
+			ref = getSolrServiceReference(EmbeddedOSGiClientResourceLoader.class, componentContext.getBundleContext());
+			if  (ref != null)
+				log.info("Unregistering EmbeddedOSGiClientResourceLoader: "+((CoreContainer)componentContext.getBundleContext().getService(ref)).getSolrHome());
 
-			ref = getSolrServiceReference(SolrResourceLoader.class, componentContext.getBundleContext());
 			try {
 				componentContext.getBundleContext().ungetService(ref);
 			} catch (Throwable e) {
-				log.error("Cannot unregister LivesenseResourceLoader", e);
-			}
-			coreContainer.shutdown();
+				log.error("Cannot unregister EmbeddedOSGiClientResourceLoader", e);
+			} 
+			*/
 		}
 
 	}
@@ -454,6 +545,7 @@ public class EmbeddedSolrClient implements SolrClient {
 		}
 	}
 
+	
 	private ClassLoader getClassLoaderByBundle(String name) throws ClassNotFoundException {
 		return new BundleProxyClassLoader(getBundleByName(name));
 	}
@@ -465,4 +557,5 @@ public class EmbeddedSolrClient implements SolrClient {
 		}
 		return null;
 	}
+
 }

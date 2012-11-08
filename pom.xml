@@ -2,15 +2,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
-	      <groupId>com.github.livesense</groupId>
-	      <artifactId>org.liveSense.parent</artifactId>
-	      <version>1-SNAPSHOT</version>
+		<groupId>com.github.livesense</groupId>
+		<artifactId>org.liveSense.parent</artifactId>
+		<version>2-SNAPSHOT</version>
+		<relativePath>../org.liveSense.parent</relativePath>
 	</parent>
 	<artifactId>org.liveSense.service.solr</artifactId>
 	<packaging>bundle</packaging>
-	<version>${liveSense.service.solr.version}</version>
+	<version>1.0.0-SNAPSHOT</version>
 	<name>liveSense :: Service :: Solr based search service.</name>
-	<description>A Solr bundle that embeds Solr 4 into OSGi and makes an embeded server available or references a remote server. (Derived from Sakai Nakumara - https://github.com/ieb/solr)</description>
+	<description>A Solr embeded server service available or references a remote server. (Derived from Sakai Nakumara - https://github.com/ieb/solr)</description>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
@@ -26,17 +27,6 @@
 		</testResources>
 		<plugins>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
-					<showDeprecation>true</showDeprecation>
-					<compilerArgument>-Xlint:unchecked,deprecation,fallthrough,finally</compilerArgument>
-					<fork>true</fork>
-				</configuration>
-			</plugin>
-			<plugin>
 				<groupId>org.apache.felix</groupId>
 				<artifactId>maven-scr-plugin</artifactId>
 			</plugin>
@@ -50,61 +40,9 @@
 						<Export-Package>
 							org.liveSense.service.solr.*;version=${project.version}
 						</Export-Package>
-                        <_exportcontents>
-							org.apache.solr.common;version=${solr.version},
-							org.apache.solr.common.params;version=${solr.version},
-							org.apache.solr.common.util;version=${solr.version},
-							org.apache.solr.client.solrj;version=${solr.version},
-							org.apache.solr.client.solrj.response;version=${solr.version},
-							org.apache.solr.client.solrj.util;version=${solr.version},
-							org.apache.solr.schema;version=${solr.version}
-						</_exportcontents>
-						<Import-Package>
-							org.apache.log4j.*;resolution:=optional,
-							!jline.*,
-							com.ctc.wstx.stax;resolution:=optional,
-							com.spatial4j.core.*;resolution:=optional,
-							morfologik.stemming.*;resolution:=optional,
-							org.apache.solr.common.params.*;resolution:=optional,
-							org.eclipse.jetty.*;resolution:=optional,
-							org.apache.lucene.sandbox.queries.*;resolution:=optional,
-							com.vividsolutions.jts.*;resolution:=optional,
-							org.slf4j.impl.*;resolution:=optional,
-							org.apache.commons.cli.*;resolution:=optional,
-							*
-							</Import-Package>
-						<Embed-Transitive>true</Embed-Transitive>
 						<Embed-Dependency>
-							solr-core,
-							solr-solrj,
-							solr-noggit,
-							spatial4j,
-							lucene-core,
-							lucene-analyzers-common,
-							lucene-analyzers-phonetic,
-							lucene-analyzers-stempel,
-							lucene-analyzers-icu,
-							lucene-highlighter,
-							lucene-memory,
-							lucene-misc,
-							lucene-queries,
-							lucene-queryparser,
-							lucene-spatial,
-							lucene-suggest,
-							lucene-grouping,
-							zookeeper,
 							opencsv
 						</Embed-Dependency>
-						<Private-Package>
-							org.liveSense.service.solr.*,
-							org.apache.solr.core;-split-package:=merge-first,
-							org.apache.lucene.*;-split-package:=merge-first
-						</Private-Package>
-						<Include-Resource> 
-							OSGI-INF=target/scr-plugin-generated/OSGI-INF,
-							META-INF=target/maven-shared-archive-resources/META-INF
-						</Include-Resource>
-						
 					</instructions>
 				</configuration>
 			</plugin>
@@ -119,30 +57,19 @@
 			<groupId>com.github.livesense</groupId>
 			<artifactId>org.liveSense.core</artifactId>
 		</dependency>
+
 		<dependency>
 			<groupId>org.apache.solr</groupId>
 			<artifactId>solr-solrj</artifactId>
 			<version>${solr.version}</version>
 		</dependency>
+		
 		<dependency>
 			<groupId>org.apache.solr</groupId>
 			<artifactId>solr-core</artifactId>
 			<version>${solr.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-impl</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-jdk14</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
+		
 		<dependency>
 			<groupId>org.apache.solr</groupId>
 			<artifactId>solr-analysis-extras</artifactId>
@@ -154,31 +81,24 @@
 			<artifactId>solr-dataimporthandler</artifactId>
 			<version>${solr.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>servlet-api</artifactId>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>org.osgi</groupId>
 			<artifactId>org.osgi.core</artifactId>
+			<scope>provided</scope>
 		</dependency>
+		
 		<dependency>
 			<groupId>org.osgi</groupId>
 			<artifactId>org.osgi.compendium</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>com.googlecode.guava-osgi</groupId>
-			<artifactId>guava-osgi</artifactId>
-			<version>10.0.0</version>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>commons-codec</groupId>
-			<artifactId>commons-codec</artifactId>
-		</dependency>
-
 
 		<!-- Since we will be running in OSGi we also include the following -->
 		<dependency>
@@ -192,6 +112,7 @@
 			<version>1.8.5</version>
 			<scope>test</scope>
 		</dependency>
+		
 		<dependency>
 			<groupId>findbugs</groupId>
 			<artifactId>annotations</artifactId>
@@ -199,25 +120,11 @@
 			<scope>provided</scope>
 			<!-- just needed for compiling, not runtime -->
 		</dependency>
+
 		<dependency>
-    		<groupId>net.sf.opencsv</groupId>
-    		<artifactId>opencsv</artifactId>
+			<groupId>net.sf.opencsv</groupId>
+			<artifactId>opencsv</artifactId>
 		</dependency>
 	</dependencies>
 
-	<!-- these repos are required due to Sakai OAE depedencies and and a Solr 
-		timestamped release. -->
-	<repositories>
-		<repository>
-			<id>caret-releases</id>
-			<name>Caret Releases</name>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-			<url>http://www2.caret.cam.ac.uk/maven2/</url>
-		</repository>
-	</repositories>
 </project>
