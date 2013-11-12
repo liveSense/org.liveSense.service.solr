@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?><features name="liveSense-${liveSense.version}-service-solr" xmlns="http://karaf.apache.org/xmlns/features/v1.0.0">
+	<feature name="liveSense-service-solr" version="${liveSense.service.solr.version}" description="liveSense service solr">
+        <feature>liveSense-core-base</feature>
+        <feature>liveSense-core-apache-commons</feature>
+        <feature>liveSense-framework-solr</feature>
+		<bundle>mvn:com.github.livesense/org.liveSense.service.solr/${liveSense.service.solr.version}</bundle>
+	</feature>
+</features>
