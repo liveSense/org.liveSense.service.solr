@@ -7,6 +7,11 @@
 		<version>2-SNAPSHOT</version>
 		<relativePath>..</relativePath>
 	</parent>
+	<scm>
+		<connection>scm:git:https://github.com/liveSense/org.liveSense.service.solr.git</connection>
+		<developerConnection>scm:git:https://github.com/liveSense/org.liveSense.service.solr.git</developerConnection>
+		<url>https://github.com/liveSense/org.liveSense.service.solr</url>
+	</scm>
 	<artifactId>org.liveSense.service.solr</artifactId>
 	<packaging>bundle</packaging>
 	<version>1.0.0-SNAPSHOT</version>
