@@ -3,9 +3,9 @@ package org.liveSense.service.solr;
 import junit.framework.Assert;
 import org.apache.commons.io.FileUtils;
 import org.apache.solr.core.CoreContainer;
+import org.apache.solr.core.SolrResourceLoader;
 import org.junit.Before;
 import org.junit.Test;
-import org.liveSense.service.solr.api.EmbeddedOSGiClientClassLoaderResourceLoader;
 import org.liveSense.service.solr.impl.EmbeddedSolrClient;
 import org.liveSense.service.solr.impl.Utils;
 import org.mockito.Mock;
@@ -46,7 +46,7 @@ public class EmbeddedSolrClientTest {
   private ServiceReference corecontainerRef2;
   
 
-  private EmbeddedOSGiClientClassLoaderResourceLoader loader = null;
+  private SolrResourceLoader loader = null;
 
   private CoreContainer coreContainer = null;
   /*
@@ -97,15 +97,13 @@ public class EmbeddedSolrClientTest {
     Mockito.when(bundleContext1.getProperty("sling.home"))
     	.thenReturn("target/slingtest");
     
-    Mockito.when(bundleContext1.getServiceReferences(EmbeddedOSGiClientClassLoaderResourceLoader.class.getName(), "("+ EmbeddedSolrClient.SOLR_EMBEDDED_SERVICE_KEY+"=true"))
-    	.thenReturn(new ServiceReference[]{loaderRef1});
 
     Mockito.when(bundleContext1.getServiceReferences(CoreContainer.class.getName(), "("+ EmbeddedSolrClient.SOLR_EMBEDDED_SERVICE_KEY+"=true"))
 	.thenReturn(new ServiceReference[]{corecontainerRef1});
 
     final String solrHome = Utils.getSolrHome(bundleContext1);
     if (loader == null)
-    	loader = new EmbeddedOSGiClientClassLoaderResourceLoader(solrHome, this.getClass().getClassLoader());
+    	loader = new SolrResourceLoader(solrHome);
     if (coreContainer == null)
     	coreContainer = new CoreContainer(loader);
     
@@ -125,16 +123,13 @@ public class EmbeddedSolrClientTest {
 	  
 	    Mockito.when(bundleContext2.getProperty("sling.home"))
 	    	.thenReturn("target/slingtest");
-	    
-	    Mockito.when(bundleContext2.getServiceReferences(EmbeddedOSGiClientClassLoaderResourceLoader.class.getName(), "("+ EmbeddedSolrClient.SOLR_EMBEDDED_SERVICE_KEY+"=true"))
-	    	.thenReturn(new ServiceReference[]{loaderRef2});
-	
+
 	    Mockito.when(bundleContext2.getServiceReferences(CoreContainer.class.getName(), "("+ EmbeddedSolrClient.SOLR_EMBEDDED_SERVICE_KEY+"=true"))
 		.thenReturn(new ServiceReference[]{corecontainerRef2});
 	
 	    final String solrHome = Utils.getSolrHome(bundleContext2);
 	    if (loader == null)
-	    	loader = new EmbeddedOSGiClientClassLoaderResourceLoader(solrHome, this.getClass().getClassLoader());
+	    	loader = new SolrResourceLoader(solrHome);
 	    if (coreContainer == null)
 	    	coreContainer = new CoreContainer(loader);
 	    
@@ -288,8 +283,6 @@ public class EmbeddedSolrClientTest {
 
 		boolean firstEntry = true;
 		for (File file : files) {
-//			if (!file.isDirectory() && !file.getAbsolutePath().endsWith("solrconfig.xml")
-//					&& !file.getAbsolutePath().endsWith("schema.xml")) {
 			if (!file.isDirectory() ) {
 
 				if (firstEntry) {
