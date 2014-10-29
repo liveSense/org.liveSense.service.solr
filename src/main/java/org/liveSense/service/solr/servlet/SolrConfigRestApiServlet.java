@@ -1,9 +1,8 @@
 package org.liveSense.service.solr.servlet;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Properties;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
+import org.apache.felix.scr.annotations.*;
+import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.ComponentContext;
 import org.restlet.ext.servlet.ServerServlet;
 
 import javax.servlet.Servlet;
@@ -19,4 +18,15 @@ import javax.servlet.Servlet;
 
 public class SolrConfigRestApiServlet extends ServerServlet {
 
+	private ServiceRegistration registration;
+
+	@Activate
+	protected void activate(ComponentContext context) {
+		this.registration = context.getBundleContext().registerService(Servlet.class.getName(), this, context.getProperties());
+	}
+
+	@Deactivate
+	protected void deactivate(ComponentContext context) {
+		this.registration.unregister();
+	}
 }

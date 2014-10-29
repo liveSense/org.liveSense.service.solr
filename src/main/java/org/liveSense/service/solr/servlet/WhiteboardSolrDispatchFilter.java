@@ -11,7 +11,7 @@ import java.io.IOException;
 @Service(value = { Filter.class })
 @Properties(value = {
 		@Property(name = "filter-name", value = "Solr filter"),
-		@Property(name = "pattern", value = "/solr/*"),
+		@Property(name = "pattern", value = ".*"),
 		@Property(name = "urlPatterns", value = { "/solr/*" }, unbounded = PropertyUnbounded.ARRAY, cardinality = Integer.MAX_VALUE),
 		@Property(name = "servletNames", value = { "solr-admin-content-servlet" }, unbounded = PropertyUnbounded.ARRAY, cardinality = Integer.MAX_VALUE),
  })

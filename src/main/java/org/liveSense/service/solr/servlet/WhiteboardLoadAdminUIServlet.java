@@ -51,6 +51,12 @@ public class WhiteboardLoadAdminUIServlet extends HttpServlet {
 	protected void activate(ComponentContext context) {
 		defaultIndex = PropertiesUtil.toString(context.getProperties().get("defaultIndex"), "/admin.html");
 		alias = PropertiesUtil.toString(context.getProperties().get("alias"), "/solr");
+		this.registration = context.getBundleContext().registerService(Servlet.class.getName(), this, context.getProperties());
+	}
+
+	@Deactivate
+	protected void deactivate() {
+		this.registration.unregister();
 	}
 
 	@Override
