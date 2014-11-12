@@ -95,9 +95,9 @@ public class WhiteboardLoadAdminUIServlet extends HttpServlet {
 							"${version}"
 					};
 					String[] replace = new String[] {
-							StringEscapeUtils.escapeJavaScript(alias),
-							alias,
-							StringEscapeUtils.escapeJavaScript((StringUtils.isNotEmpty(request.getContextPath()) ? request.getContextPath() : "") + coreContainer.getAdminPath()),
+							StringEscapeUtils.escapeJavaScript((StringUtils.isNotEmpty(request.getContextPath()) ? request.getContextPath() : "") + alias),
+							(StringUtils.isNotEmpty(request.getContextPath()) ? request.getContextPath() : "") + alias,
+							StringEscapeUtils.escapeJavaScript(coreContainer.getAdminPath()),
 							StringEscapeUtils.escapeJavaScript(pack.getSpecificationVersion())
 					};
 
